@@ -1,6 +1,8 @@
 plugins {
     id 'com.github.hierynomus.license' version '0.12.1'
     id 'com.jfrog.bintray' version '1.5'
+    id "com.gradle.plugin-publish" version "0.9.4"
+
 }
 
 apply plugin: 'java'
@@ -10,9 +12,9 @@ apply plugin: 'maven-publish'
 apply plugin: 'findbugs'
 apply plugin: 'license'
 apply plugin: 'com.jfrog.bintray'
+apply plugin: "com.gradle.plugin-publish"
 
 group = 'org.jayware'
-version = '0.1.0'
 
 repositories {
    mavenCentral()
@@ -55,7 +57,7 @@ bintray {
         name = 'gradle-osgi-ds'
         userOrg = 'jayware'
         licenses = ['Apache-2.0']
-        vcsUrl = 'https://github.com/jayware/gradle-osgi-ds'
+        vcsUrl = project.vcsUrl
         version {
             name = project.version
             desc = "${project.description}"
@@ -64,6 +66,24 @@ bintray {
         }
     }
     publications = ['GradleOsgiDS']
+}
+
+pluginBundle {
+    website = project.website
+    vcsUrl = project.vcsUrl
+    description = project.description
+    plugins {
+        osgiDs {
+            id = "org.jayware.osgi-ds"
+            displayName = 'OSGi Declarative Services plugin for Gradle'
+            tags = [ 'gradle', 'plugin', 'osgi', 'ds', 'declarative services', 'scr' ]
+        }
+    }
+    mavenCoordinates {
+        groupId = project.group
+        artifactId = project.name
+        version = project.version
+    }
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
@@ -95,12 +115,12 @@ plugins.withType(MavenPublishPlugin) {
                     def root = asNode()
                     root.appendNode('name', "${project.group}:${project.name}")
                     root.appendNode('description', project.description)
-                    root.appendNode('url', 'http://jayware.github.io/gradle-osgi-ds/')
+                    root.appendNode('url', project.website)
                     root.appendNode('inceptionYear', '2016')
                     def scm = root.appendNode('scm')
-                    scm.appendNode('url', 'https://github.com/jayware/gradle-osgi-ds')
-                    scm.appendNode('connection', 'git@github.com:jayware/gradle-osgi-ds.git')
-                    scm.appendNode('developerConnection', 'git@github.com:jayware/gradle-osgi-ds.git')
+                    scm.appendNode('url', project.website)
+                    scm.appendNode('connection', project.vcsUrl)
+                    scm.appendNode('developerConnection', project.vcsUrl)
                     def developers = root.appendNode('developers')
                     def dev = developers.appendNode('developer')
                     dev.appendNode('name', 'Elmar Schug')
