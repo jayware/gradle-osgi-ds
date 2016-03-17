@@ -21,13 +21,16 @@ import org.apache.felix.scrplugin.SCRDescriptorFailureException;
 import org.apache.felix.scrplugin.SCRDescriptorGenerator;
 import org.apache.felix.scrplugin.Source;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
-import org.gradle.api.logging.Logger;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -35,7 +38,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.gradle.api.plugins.JavaPlugin.COMPILE_CONFIGURATION_NAME;
 
@@ -43,8 +49,9 @@ import static org.gradle.api.plugins.JavaPlugin.COMPILE_CONFIGURATION_NAME;
 public class GenerateDeclarativeServicesDescriptorsTask
 extends DefaultTask
 {
+    private final Logger log = LoggerFactory.getLogger(GenerateDeclarativeServicesDescriptorsTask.class);
+
     private final Project project;
-    private final Logger logger;
 
     @OutputDirectory
     File outputDirectory;
@@ -55,7 +62,6 @@ extends DefaultTask
     public GenerateDeclarativeServicesDescriptorsTask()
     {
         project = getProject();
-        logger = project.getLogger();
 
         outputDirectory = new File(project.getBuildDir(), "/tmp/osgi-ds");
         getOutputs().dir(outputDirectory);
@@ -68,7 +74,7 @@ extends DefaultTask
         final Options scrOptions = createOptions();
         final org.apache.felix.scrplugin.Project scrProject = createProject();
 
-        final SCRDescriptorGenerator scrGenerator = new SCRDescriptorGenerator(new GradleSCRDescriptorGeneratorLoggerAdapter(logger));
+        final SCRDescriptorGenerator scrGenerator = new SCRDescriptorGenerator(new GradleSCRDescriptorGeneratorLoggerAdapter(log));
         scrGenerator.setOptions(scrOptions);
         scrGenerator.setProject(scrProject);
 
@@ -76,30 +82,31 @@ extends DefaultTask
     }
 
     private org.apache.felix.scrplugin.Project createProject()
-    throws MalformedURLException
     {
         final org.apache.felix.scrplugin.Project scrProject = new org.apache.felix.scrplugin.Project();
-        final List<URL> dependenciesAsUrl = new ArrayList<>();
-        final List<File> dependenciesAsFile = new ArrayList<>();
+        final Set<URL> dependenciesAsUrl = new HashSet<>();
+        final Set<File> dependenciesAsFile = new HashSet<>();
         final List<Source> sources = new ArrayList<>();
+        final Configuration compileConfiguration = project.getConfigurations().getByName(COMPILE_CONFIGURATION_NAME);
 
-        project.getConfigurations().getByName(COMPILE_CONFIGURATION_NAME).getResolvedConfiguration().getResolvedArtifacts().forEach(artifact ->
+        compileConfiguration.getResolvedConfiguration().getResolvedArtifacts().forEach(artifact ->
         {
             try
             {
                 final File file = artifact.getFile();
                 dependenciesAsFile.add(file);
                 dependenciesAsUrl.add(file.toURI().toURL());
-                logger.info("dependency add: {}", file);
+                log.info("dependency added: {}", file);
             }
             catch (MalformedURLException e)
             {
-                logger.error("Failed to add dependency!", e);
+                throw new GradleException(getName() + " failed!", e);
             }
         });
 
         input.forEach(dir ->
         {
+            final AtomicBoolean addDirAsDependencies = new AtomicBoolean(false);
             final FileTree tree = project.fileTree(dir);
             final Path root = dir.toPath();
 
@@ -108,20 +115,20 @@ extends DefaultTask
                 final String path = root.relativize(file.toPath()).toString();
                 final String className = path.replace(File.separatorChar, '.').replace(".class", "");
 
-                logger.debug("Source [{}, {}]",className, file.toString());
+                log.debug("Source [{}, {}]",className, file.toString());
 
                 sources.add(new ScrSource(className, file));
-            });
 
-            try
-            {
-                dependenciesAsUrl.add(dir.toURI().toURL());
-                dependenciesAsFile.add(dir);
-            }
-            catch (MalformedURLException e)
-            {
-                logger.error("Failed to add dir to list of dependencies!", e);
-            }
+                try
+                {
+                    dependenciesAsUrl.add(dir.toURI().toURL());
+                    dependenciesAsFile.add(dir);
+                }
+                catch (MalformedURLException e)
+                {
+                    throw new GradleException(getName() + " failed!", e);
+                }
+            });
         });
 
         final URL[] dependencies = new URL[dependenciesAsUrl.size()];
@@ -138,7 +145,7 @@ extends DefaultTask
 
         final Options scrOptions = new Options();
         scrOptions.setOutputDirectory(outputDirectory);
-        scrOptions.setGenerateAccessors(true);
+        scrOptions.setGenerateAccessors(false);
         scrOptions.setStrictMode(false);
         scrOptions.setSpecVersion(null);
 

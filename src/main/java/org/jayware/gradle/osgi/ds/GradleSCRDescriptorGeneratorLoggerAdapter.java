@@ -16,7 +16,8 @@
 package org.jayware.gradle.osgi.ds;
 
 import org.apache.felix.scrplugin.Log;
-import org.gradle.api.logging.Logger;
+import org.slf4j.Logger;
+
 
 public class GradleSCRDescriptorGeneratorLoggerAdapter
 implements Log
