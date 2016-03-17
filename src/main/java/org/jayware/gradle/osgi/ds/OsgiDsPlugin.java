@@ -19,6 +19,7 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.plugins.JavaPlugin;
+import org.gradle.api.plugins.osgi.OsgiPlugin;
 import org.gradle.api.tasks.bundling.Jar;
 
 import static org.gradle.api.plugins.JavaPlugin.COMPILE_JAVA_TASK_NAME;
@@ -33,6 +34,7 @@ implements Plugin<Project>
     public void apply(Project project)
     {
         project.getPluginManager().apply(JavaPlugin.class);
+        project.getPluginManager().apply(OsgiPlugin.class);
 
         final GenerateDeclarativeServicesDescriptorsTask task = project.getTasks().create(GENERATE_DESCRIPTORS_TASK_NAME, GenerateDeclarativeServicesDescriptorsTask.class);
         task.setGroup(BasePlugin.BUILD_GROUP);
