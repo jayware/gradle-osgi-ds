@@ -41,9 +41,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.gradle.api.plugins.JavaPlugin.COMPILE_CONFIGURATION_NAME;
+import static org.gradle.api.plugins.JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME;
 
 
 public class GenerateDeclarativeServicesDescriptorsTask
@@ -84,29 +83,34 @@ extends DefaultTask
     private org.apache.felix.scrplugin.Project createProject()
     {
         final org.apache.felix.scrplugin.Project scrProject = new org.apache.felix.scrplugin.Project();
-        final Set<URL> dependenciesAsUrl = new HashSet<>();
-        final Set<File> dependenciesAsFile = new HashSet<>();
+        final Set<File> dependencies = new HashSet<>();
         final List<Source> sources = new ArrayList<>();
-        final Configuration compileConfiguration = project.getConfigurations().getByName(COMPILE_CONFIGURATION_NAME);
 
+        collectCompileDependencies(dependencies);
+        collectGenerationSources(input, dependencies, sources);
+
+        scrProject.setClassLoader(new URLClassLoader(toUrlArray(dependencies), this.getClass().getClassLoader()));
+        scrProject.setDependencies(dependencies);
+        scrProject.setSources(sources);
+
+        return scrProject;
+    }
+
+    private void collectCompileDependencies(Set<File> dependencies)
+    {
+        final Configuration compileConfiguration = project.getConfigurations().getByName(COMPILE_CLASSPATH_CONFIGURATION_NAME);
         compileConfiguration.getResolvedConfiguration().getResolvedArtifacts().forEach(artifact ->
         {
-            try
-            {
-                final File file = artifact.getFile();
-                dependenciesAsFile.add(file);
-                dependenciesAsUrl.add(file.toURI().toURL());
-                log.info("dependency added: {}", file);
-            }
-            catch (MalformedURLException e)
-            {
-                throw new GradleException(getName() + " failed!", e);
-            }
+            final File file = artifact.getFile();
+            dependencies.add(file);
+            log.info("dependency added: {}", file);
         });
+    }
 
-        input.forEach(dir ->
+    private void collectGenerationSources(FileCollection files, Set<File> dependencies, List<Source> sources)
+    {
+        files.forEach(dir ->
         {
-            final AtomicBoolean addDirAsDependencies = new AtomicBoolean(false);
             final FileTree tree = project.fileTree(dir);
             final Path root = dir.toPath();
 
@@ -117,28 +121,30 @@ extends DefaultTask
 
                 log.debug("Source [{}, {}]",className, file.toString());
 
-                sources.add(new ScrSource(className, file));
+                sources.add(new GenerationSource(className, file));
 
-                try
-                {
-                    dependenciesAsUrl.add(dir.toURI().toURL());
-                    dependenciesAsFile.add(dir);
-                }
-                catch (MalformedURLException e)
-                {
-                    throw new GradleException(getName() + " failed!", e);
-                }
+                dependencies.add(dir);
             });
         });
+    }
 
-        final URL[] dependencies = new URL[dependenciesAsUrl.size()];
-        dependenciesAsUrl.toArray(dependencies);
+    private URL[] toUrlArray(Set<File> dependencies)
+    {
+        final URL[] result = new URL[dependencies.size()];
+        int index = 0;
+        for (File file : dependencies)
+        {
+            try
+            {
+                result[index++] = file.toURI().toURL();
+            }
+            catch (MalformedURLException e)
+            {
+                throw new GradleException("Something went wrong!", e);
+            }
+        }
 
-        scrProject.setClassLoader(new URLClassLoader(dependencies, this.getClass().getClassLoader()));
-        scrProject.setDependencies(dependenciesAsFile);
-        scrProject.setSources(sources);
-
-        return scrProject;
+        return result;
     }
 
     private Options createOptions() {
@@ -152,13 +158,13 @@ extends DefaultTask
         return scrOptions;
     }
 
-    private static class ScrSource
+    private static class GenerationSource
     implements Source
     {
         private final String myClassName;
         private final File mySourceFile;
 
-        private ScrSource(String className, File sourceFile)
+        private GenerationSource(String className, File sourceFile)
         {
             myClassName = className;
             mySourceFile = sourceFile;

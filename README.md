@@ -46,7 +46,7 @@ apply plugin: 'osgi-ds'
 
 
 dependencies {
-    compile 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+    compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
 }
 
 jar {
