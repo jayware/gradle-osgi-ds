@@ -59,7 +59,7 @@ jar {
 #### Example OSGi Service
 
 ```java
-package example;
+package example.api;
 
 public interface Fubar
 {
@@ -68,7 +68,7 @@ public interface Fubar
 ```
 
 ```java
-package example;
+package example.impl;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
