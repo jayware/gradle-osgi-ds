@@ -29,14 +29,14 @@ Easy to use gradle plugin to generate Declarative Services XML files based on th
 ### Maven coordinates
 | Group ID              | Artifact ID                                                                              | Version |
 | :-------------------: | :--------------------------------------------------------------------------------------: | :-----: |
-| org.jayware           | <a href="https://jcenter.bintray.com/org/jayware/gradle-osgi-ds/">gradle-osgi-ds</a>     | 0.2.0   |
+| org.jayware           | <a href="https://jcenter.bintray.com/org/jayware/gradle-osgi-ds/">gradle-osgi-ds</a>     | 0.3.0   |
 
 ### Usage
 
 #### Example Gradle script
 ```groovy
 plugins {
-    id 'org.jayware.osgi-ds' version '0.2.0'
+    id 'org.jayware.osgi-ds' version '0.3.0'
 }
 
 apply plugin: 'java'
@@ -63,7 +63,7 @@ package example;
 
 public interface Fubar
 {
-    void fubar();
+    void sayHello();
 }
 ```
 
@@ -84,9 +84,9 @@ implements Fubar
     }
 
     @Override
-    public void fubar()
+    public void sayHello()
     {
-        System.out.println("fubar");
+        System.out.println("Hello World!");
     }
 }
 ```
@@ -95,9 +95,9 @@ implements Fubar
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="true" name="MySuperService" activate="turnOn">
-    <implementation class="example.FubarServiceImpl"/>
+    <implementation class="example.impl.FubarServiceImpl"/>
     <service servicefactory="false">
-        <provide interface="example.Fubar"/>
+        <provide interface="example.api.Fubar"/>
     </service>
 </scr:component>
 ```

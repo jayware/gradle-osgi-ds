@@ -1,16 +1,17 @@
-buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'org.jayware:gradle-osgi-ds:0.3.0'
-    }
-}
-//plugins {
-//    id 'org.jayware.osgi-ds' version '0.2.0'
+//buildscript {
+//    repositories {
+//        mavenLocal()
+//        mavenCentral()
+//    }
+//
+//    dependencies {
+//        classpath 'org.jayware:gradle-osgi-ds:0.3.0'
+//    }
 //}
+
+plugins {
+    id 'org.jayware.osgi-ds' version '0.2.0'
+}
 
 subprojects {
     apply plugin: 'java'
