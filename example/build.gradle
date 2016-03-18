@@ -1,0 +1,38 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'org.jayware:gradle-osgi-ds:0.3.0'
+    }
+}
+//plugins {
+//    id 'org.jayware.osgi-ds' version '0.2.0'
+//}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'osgi'
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+configure(project(':example-impl')) {
+    apply plugin: 'osgi-ds'
+
+    dependencies {
+        compile project(':example-api')
+
+        compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+    }
+
+    jar {
+        manifest {
+            instruction 'Service-Component', 'OSGI-INF/*.xml'
+        }
+    }
+}
