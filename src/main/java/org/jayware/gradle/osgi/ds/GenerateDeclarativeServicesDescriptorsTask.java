@@ -151,7 +151,6 @@ extends DefaultTask
 
         final Options scrOptions = new Options();
         scrOptions.setOutputDirectory(outputDirectory);
-        scrOptions.setGenerateAccessors(false);
         scrOptions.setStrictMode(false);
         scrOptions.setSpecVersion(null);
 
