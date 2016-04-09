@@ -50,8 +50,8 @@ license {
 }
 
 bintray {
-    user = hasProperty('bintray.user') ? property('bintray.user') : ''
-    key = hasProperty('bintray.key') ? property('bintray.key') : ''
+    user = System.getProperty('bintray.user')
+    key = System.getProperty('bintray.key')
     pkg {
         repo = 'maven'
         name = 'gradle-osgi-ds'
