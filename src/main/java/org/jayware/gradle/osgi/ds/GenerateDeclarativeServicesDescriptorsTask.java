@@ -52,18 +52,15 @@ extends DefaultTask
 
     private final Project project;
 
-    @OutputDirectory
-    File outputDirectory;
-
     @InputFiles
     FileCollection input;
+
+    @OutputDirectory
+    File outputDirectory;
 
     public GenerateDeclarativeServicesDescriptorsTask()
     {
         project = getProject();
-
-        outputDirectory = new File(project.getBuildDir(), "/tmp/osgi-ds");
-        getOutputs().dir(outputDirectory);
     }
 
     @TaskAction
