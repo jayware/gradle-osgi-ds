@@ -17,6 +17,7 @@ package org.jayware.gradle.osgi.ds;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.tasks.bundling.Jar;
@@ -32,12 +33,15 @@ implements Plugin<Project>
     @Override
     public void apply(Project project)
     {
+        final Task compileJavaTask = project.getTasks().getByPath(JavaPlugin.COMPILE_JAVA_TASK_NAME);
         final GenerateDeclarativeServicesDescriptorsTask task = project.getTasks().create(GENERATE_DESCRIPTORS_TASK_NAME, GenerateDeclarativeServicesDescriptorsTask.class);
         task.setGroup(BasePlugin.BUILD_GROUP);
         task.setDescription("Generates OSGi Declarative Services XML descriptors");
-        task.input = project.files(project.getTasks().getByPath(JavaPlugin.COMPILE_JAVA_TASK_NAME).getOutputs());
+        task.input = project.files(compileJavaTask);
         task.outputDirectory = new File(project.getBuildDir(), "/tmp/osgi-ds");
+        task.mustRunAfter(compileJavaTask);
 
         ((Jar) project.getTasks().getByName("jar")).from(task);
+        ((Jar) project.getTasks().getByName("jar")).from(task.outputDirectory);
     }
 }
