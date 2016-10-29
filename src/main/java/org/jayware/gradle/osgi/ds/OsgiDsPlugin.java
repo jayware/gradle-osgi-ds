@@ -17,12 +17,12 @@ package org.jayware.gradle.osgi.ds;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.Task;
 import org.gradle.api.plugins.BasePlugin;
-import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.tasks.bundling.Jar;
+import org.gradle.api.tasks.bundling.AbstractArchiveTask;
+import org.gradle.api.tasks.compile.AbstractCompile;
 
 import java.io.File;
+import java.util.function.Consumer;
 
 
 public class OsgiDsPlugin
@@ -33,15 +33,27 @@ implements Plugin<Project>
     @Override
     public void apply(Project project)
     {
-        final Task compileJavaTask = project.getTasks().getByPath(JavaPlugin.COMPILE_JAVA_TASK_NAME);
         final GenerateDeclarativeServicesDescriptorsTask task = project.getTasks().create(GENERATE_DESCRIPTORS_TASK_NAME, GenerateDeclarativeServicesDescriptorsTask.class);
+        final AbstractArchiveTask archiveTask = (AbstractArchiveTask) project.getTasks().findByName("jar");
+
         task.setGroup(BasePlugin.BUILD_GROUP);
         task.setDescription("Generates OSGi Declarative Services XML descriptors");
-        task.input = project.files(compileJavaTask);
         task.outputDirectory = new File(project.getBuildDir(), "/tmp/osgi-ds");
-        task.mustRunAfter(compileJavaTask);
 
-        ((Jar) project.getTasks().getByName("jar")).from(task);
-        ((Jar) project.getTasks().getByName("jar")).from(task.outputDirectory);
+        project.getTasks().withType(AbstractCompile.class).forEach(new Consumer<AbstractCompile>()
+        {
+            @Override
+            public void accept(AbstractCompile compileTask)
+            {
+                task.input.add(project.files(compileTask));
+                task.mustRunAfter(compileTask);
+            }
+        });
+
+        if (archiveTask != null)
+        {
+            archiveTask.from(task);
+            archiveTask.from(task.outputDirectory);
+        }
     }
 }

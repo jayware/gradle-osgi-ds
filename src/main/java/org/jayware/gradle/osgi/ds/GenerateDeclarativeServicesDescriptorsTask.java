@@ -53,7 +53,7 @@ extends DefaultTask
     private final Project project;
 
     @InputFiles
-    FileCollection input;
+    final List<FileCollection> input = new ArrayList<>();
 
     @OutputDirectory
     File outputDirectory;
@@ -104,23 +104,26 @@ extends DefaultTask
         });
     }
 
-    private void collectGenerationSources(FileCollection files, Set<File> dependencies, List<Source> sources)
+    private void collectGenerationSources(List<FileCollection> files, Set<File> dependencies, List<Source> sources)
     {
-        files.forEach(dir ->
+        files.forEach(collection ->
         {
-            final FileTree tree = project.fileTree(dir);
-            final Path root = dir.toPath();
-
-            tree.filter(file -> file.getName().endsWith(".class")).forEach(file ->
+            collection.forEach(dir ->
             {
-                final String path = root.relativize(file.toPath()).toString();
-                final String className = path.replace(File.separatorChar, '.').replace(".class", "");
+                final FileTree tree = project.fileTree(dir);
+                final Path root = dir.toPath();
 
-                log.debug("Source [{}, {}]",className, file.toString());
+                tree.filter(file -> file.getName().endsWith(".class")).forEach(file ->
+                {
+                    final String path = root.relativize(file.toPath()).toString();
+                    final String className = path.replace(File.separatorChar, '.').replace(".class", "");
 
-                sources.add(new GenerationSource(className, file));
+                    log.debug("Source [{}, {}]", className, file.toString());
 
-                dependencies.add(dir);
+                    sources.add(new GenerationSource(className, file));
+
+                    dependencies.add(dir);
+                });
             });
         });
     }

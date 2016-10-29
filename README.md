@@ -29,14 +29,14 @@ Easy to use gradle plugin to generate Declarative Services XML files based on th
 ### Maven coordinates
 | Group ID              | Artifact ID                                                                              | Version |
 | :-------------------: | :--------------------------------------------------------------------------------------: | :-----: |
-| org.jayware           | <a href="https://jcenter.bintray.com/org/jayware/gradle-osgi-ds/">gradle-osgi-ds</a>     | 0.5.1   |
+| org.jayware           | <a href="https://jcenter.bintray.com/org/jayware/gradle-osgi-ds/">gradle-osgi-ds</a>     | 0.5.4   |
 
 ### Usage
 
 #### Example Gradle script
 ```groovy
 plugins {
-    id 'org.jayware.osgi-ds' version '0.5.1'
+    id 'org.jayware.osgi-ds' version '0.5.4'
 }
 
 apply plugin: 'java'
