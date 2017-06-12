@@ -22,7 +22,6 @@ import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.api.tasks.compile.AbstractCompile;
 
 import java.io.File;
-import java.util.function.Consumer;
 
 
 public class OsgiDsPlugin
@@ -38,22 +37,19 @@ implements Plugin<Project>
 
         task.setGroup(BasePlugin.BUILD_GROUP);
         task.setDescription("Generates OSGi Declarative Services XML descriptors");
-        task.outputDirectory = new File(project.getBuildDir(), "/tmp/osgi-ds");
+        task.setOutputDirectory(new File(project.getBuildDir(), "/tmp/osgi-ds"));
 
-        project.getTasks().withType(AbstractCompile.class).forEach(new Consumer<AbstractCompile>()
+        project.getTasks().withType(AbstractCompile.class).forEach(compileTask -> 
         {
-            @Override
-            public void accept(AbstractCompile compileTask)
-            {
-                task.input.add(project.files(compileTask));
-                task.mustRunAfter(compileTask);
-            }
+        	if(!compileTask.getName().toLowerCase().contains("test")){ // exclude testCompile
+	            task.getInput().add(project.files(compileTask));
+	            task.mustRunAfter(compileTask);
+        	}
         });
 
         if (archiveTask != null)
         {
             archiveTask.from(task);
-            archiveTask.from(task.outputDirectory);
         }
     }
 }
