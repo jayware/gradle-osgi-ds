@@ -52,11 +52,9 @@ extends DefaultTask
 
     private final Project project;
 
-    @InputFiles
-    final List<FileCollection> input = new ArrayList<>();
+    private final List<FileCollection> input = new ArrayList<>();
 
-    @OutputDirectory
-    File outputDirectory;
+    private File outputDirectory;
 
     public GenerateDeclarativeServicesDescriptorsTask()
     {
@@ -156,8 +154,22 @@ extends DefaultTask
 
         return scrOptions;
     }
+    
+    @OutputDirectory
+    public File getOutputDirectory() {
+		return outputDirectory;
+	}
 
-    private static class GenerationSource
+	public void setOutputDirectory(File outputDirectory) {
+		this.outputDirectory = outputDirectory;
+	}
+
+	@InputFiles
+	public List<FileCollection> getInput() {
+		return input;
+	}
+
+	private static class GenerationSource
     implements Source
     {
         private final String myClassName;
