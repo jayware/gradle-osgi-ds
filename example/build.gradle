@@ -5,12 +5,12 @@
 //    }
 //
 //    dependencies {
-//        classpath 'org.jayware:gradle-osgi-ds:0.5.4'
+//        classpath 'org.jayware:gradle-osgi-ds:0.5.5'
 //    }
 //}
 
 plugins {
-    id 'org.jayware.osgi-ds' version '0.5.4'
+    id 'org.jayware.osgi-ds' version '0.5.5'
 }
 
 subprojects {
