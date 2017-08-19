@@ -70,23 +70,41 @@ public interface Fubar
 ```java
 package example.impl;
 
+import example.api.AnotherService;
+import example.api.Fubar;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 @Component(service = Fubar.class, name = "MySuperService", immediate = true)
 public class FubarServiceImpl
 implements Fubar
 {
+    private AnotherService anotherService;
+
     @Activate
     public void turnOn()
     {
-        System.out.println("FubarService activated");
+        System.out.println("FubarService activated!");
     }
 
     @Override
     public void sayHello()
     {
         System.out.println("Hello World!");
+
+        anotherService.doSomething();
+    }
+
+    @Reference
+    public void bind(AnotherService service)
+    {
+        anotherService = service;
+    }
+
+    public void unbind(AnotherService service)
+    {
+        anotherService = null;
     }
 }
 ```
@@ -95,10 +113,11 @@ implements Fubar
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="true" name="MySuperService" activate="turnOn">
-    <implementation class="example.impl.FubarServiceImpl"/>
     <service servicefactory="false">
         <provide interface="example.api.Fubar"/>
     </service>
+    <reference name="" interface="example.api.AnotherService" cardinality="1..1" policy="static" bind="bind" unbind="unbind"/>
+    <implementation class="example.impl.FubarServiceImpl"/>
 </scr:component>
 ```
 
