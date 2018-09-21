@@ -39,6 +39,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -113,8 +114,18 @@ extends DefaultTask
 
                 tree.filter(file -> file.getName().endsWith(".class")).forEach(file ->
                 {
-                    final String path = root.relativize(file.toPath()).toString();
-                    final String className = path.replace(File.separatorChar, '.').replace(".class", "");
+                    StringBuilder sb = new StringBuilder();
+                    Iterator<Path> it = root.relativize(file.toPath()).iterator();
+                    while (it.hasNext())
+                    {
+                        String element = it.next().toString();
+                        if (it.hasNext()) {
+                            sb.append(element).append(".");
+                        } else {
+                            sb.append(element, 0, element.length() - ".class".length());
+                        }
+                    }
+                    final String className = sb.toString();
 
                     log.debug("Source [{}, {}]", className, file.toString());
 
