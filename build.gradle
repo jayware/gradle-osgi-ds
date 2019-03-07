@@ -1,8 +1,7 @@
 plugins {
     id 'com.github.hierynomus.license' version '0.12.1'
     id 'com.jfrog.bintray' version '1.5'
-    id "com.gradle.plugin-publish" version "0.9.4"
-
+    id 'com.gradle.plugin-publish' version '0.10.1'
 }
 
 apply plugin: 'java'
@@ -71,18 +70,22 @@ bintray {
 pluginBundle {
     website = project.website
     vcsUrl = project.vcsUrl
-    description = project.description
-    plugins {
-        osgiDs {
-            id = "org.jayware.osgi-ds"
-            displayName = 'OSGi Declarative Services plugin for Gradle'
-            tags = [ 'gradle', 'plugin', 'osgi', 'ds', 'declarative services', 'scr' ]
-        }
-    }
+    tags = ['gradle', 'plugin', 'osgi', 'ds', 'declarative services', 'scr']
     mavenCoordinates {
         groupId = project.group
         artifactId = project.name
         version = project.version
+    }
+}
+
+gradlePlugin {
+    plugins {
+        osgiDs {
+            id = "org.jayware.osgi-ds"
+            displayName = 'OSGi Declarative Services plugin for Gradle'
+            description = project.description
+            implementationClass = 'org.jayware.gradle.osgi.ds.OsgiDsPlugin'
+        }
     }
 }
 
