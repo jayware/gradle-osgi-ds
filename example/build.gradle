@@ -1,19 +1,20 @@
-//buildscript {
-//    repositories {
-//        mavenLocal()
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
 //        maven {
 //            url "https://plugins.gradle.org/m2/"
 //        }
-//    }
-//
-//    dependencies {
-//        classpath 'org.jayware:gradle-osgi-ds:0.5.5'
-//    }
-//}
+    }
 
-plugins {
-    id 'org.jayware.osgi-ds' version '0.5.6'
+    dependencies {
+        classpath 'org.jayware:gradle-osgi-ds:0.6.0'
+    }
 }
+
+//plugins {
+//    id 'org.jayware.osgi-ds' version '0.5.6'
+//}
 
 subprojects {
     apply plugin: 'java'
@@ -29,7 +30,21 @@ configure(project(':example-impl')) {
 
     dependencies {
         compile project(':example-api')
+        compile files("${project(':example-external-jar').buildDir}/libs/example-external-jar.jar")
 
+        compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
+    }
+
+    jar {
+        manifest {
+            instruction 'Service-Component', 'OSGI-INF/*.xml'
+        }
+    }
+}
+
+configure(project(':example-external-jar')) {
+    apply plugin: 'osgi-ds'
+    dependencies {
         compileOnly 'org.osgi:org.osgi.service.component.annotations:1.3.0'
     }
 
