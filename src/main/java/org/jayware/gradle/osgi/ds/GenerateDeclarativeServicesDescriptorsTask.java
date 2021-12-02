@@ -16,192 +16,113 @@
 package org.jayware.gradle.osgi.ds;
 
 import org.apache.felix.scrplugin.Options;
+import org.apache.felix.scrplugin.Project;
 import org.apache.felix.scrplugin.SCRDescriptorException;
 import org.apache.felix.scrplugin.SCRDescriptorFailureException;
 import org.apache.felix.scrplugin.SCRDescriptorGenerator;
 import org.apache.felix.scrplugin.Source;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
-import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.EmptyFileVisitor;
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.file.FileTree;
+import org.gradle.api.file.FileVisitDetails;
+import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.Collection;
 import java.util.Set;
 
-import static org.gradle.api.plugins.JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME;
+public abstract class GenerateDeclarativeServicesDescriptorsTask extends DefaultTask {
 
+    @InputFiles
+    public abstract ConfigurableFileCollection getInputFiles();
 
-public class GenerateDeclarativeServicesDescriptorsTask
-extends DefaultTask
-{
-    private final Logger log = LoggerFactory.getLogger(GenerateDeclarativeServicesDescriptorsTask.class);
+    @Classpath
+    public abstract ConfigurableFileCollection getClasspath();
 
-    private final Project project;
-
-    private final List<FileCollection> input = new ArrayList<>();
-
-    private File outputDirectory;
-
-    public GenerateDeclarativeServicesDescriptorsTask()
-    {
-        project = getProject();
-    }
+    @OutputDirectory
+    public abstract DirectoryProperty getOutputDirectory();
 
     @TaskAction
-    public void generateDeclarativeServicesDescriptors()
-    throws SCRDescriptorException, SCRDescriptorFailureException, MalformedURLException
-    {
+    public void generateDeclarativeServicesDescriptors() throws SCRDescriptorException, SCRDescriptorFailureException, IOException {
         final Options scrOptions = createOptions();
-        final org.apache.felix.scrplugin.Project scrProject = createProject();
 
-        final SCRDescriptorGenerator scrGenerator = new SCRDescriptorGenerator(new GradleSCRDescriptorGeneratorLoggerAdapter(log));
-        scrGenerator.setOptions(scrOptions);
-        scrGenerator.setProject(scrProject);
+        try (GradleScrProject scrProject = new GradleScrProject(getInputFiles(), getClasspath())) {
+            final SCRDescriptorGenerator scrGenerator = new SCRDescriptorGenerator(new GradleSCRDescriptorGeneratorLoggerAdapter(getLogger()));
+            scrGenerator.setOptions(scrOptions);
+            scrGenerator.setProject(scrProject);
 
-        scrGenerator.execute();
-    }
-
-    private org.apache.felix.scrplugin.Project createProject()
-    {
-        final org.apache.felix.scrplugin.Project scrProject = new org.apache.felix.scrplugin.Project();
-        final Set<File> dependencies = new HashSet<>();
-        final List<Source> sources = new ArrayList<>();
-
-        collectCompileDependencies(dependencies);
-        collectGenerationSources(input, dependencies, sources);
-
-        scrProject.setClassLoader(new URLClassLoader(toUrlArray(dependencies), this.getClass().getClassLoader()));
-        scrProject.setDependencies(dependencies);
-        scrProject.setSources(sources);
-
-        return scrProject;
-    }
-
-    private void collectCompileDependencies(Set<File> dependencies)
-    {
-        final Configuration compileConfiguration = project.getConfigurations().getByName(COMPILE_CLASSPATH_CONFIGURATION_NAME);
-        compileConfiguration.getResolvedConfiguration().getResolvedArtifacts().forEach(artifact ->
-        {
-            final File file = artifact.getFile();
-            dependencies.add(file);
-            log.info("dependency added: {}", file);
-        });
-    }
-
-    private void collectGenerationSources(List<FileCollection> files, Set<File> dependencies, List<Source> sources)
-    {
-        files.forEach(collection ->
-        {
-            collection.forEach(dir ->
-            {
-                final FileTree tree = project.fileTree(dir);
-                final Path root = dir.toPath();
-
-                tree.filter(file -> file.getName().endsWith(".class")).forEach(file ->
-                {
-                    StringBuilder sb = new StringBuilder();
-                    Iterator<Path> it = root.relativize(file.toPath()).iterator();
-                    while (it.hasNext())
-                    {
-                        String element = it.next().toString();
-                        if (it.hasNext()) {
-                            sb.append(element).append(".");
-                        } else {
-                            sb.append(element, 0, element.length() - ".class".length());
-                        }
-                    }
-                    final String className = sb.toString();
-
-                    log.debug("Source [{}, {}]", className, file.toString());
-
-                    sources.add(new GenerationSource(className, file));
-
-                    dependencies.add(dir);
-                });
-            });
-        });
-    }
-
-    private URL[] toUrlArray(Set<File> dependencies)
-    {
-        final URL[] result = new URL[dependencies.size()];
-        int index = 0;
-        for (File file : dependencies)
-        {
-            try
-            {
-                result[index++] = file.toURI().toURL();
-            }
-            catch (MalformedURLException e)
-            {
-                throw new GradleException("Something went wrong!", e);
-            }
+            scrGenerator.execute();
         }
-
-        return result;
     }
 
     private Options createOptions() {
-
         final Options scrOptions = new Options();
-        scrOptions.setOutputDirectory(outputDirectory);
+        scrOptions.setOutputDirectory(getOutputDirectory().get().getAsFile());
         scrOptions.setStrictMode(false);
         scrOptions.setSpecVersion(null);
 
         return scrOptions;
     }
-    
-    @OutputDirectory
-    public File getOutputDirectory() {
-		return outputDirectory;
-	}
 
-	public void setOutputDirectory(File outputDirectory) {
-		this.outputDirectory = outputDirectory;
-	}
+    static class GradleScrProject extends Project implements Closeable {
 
-	@InputFiles
-	public List<FileCollection> getInput() {
-		return input;
-	}
+        private final URLClassLoader urlClassLoader;
 
-	private static class GenerationSource
-    implements Source
-    {
-        private final String myClassName;
-        private final File mySourceFile;
-
-        private GenerationSource(String className, File sourceFile)
-        {
-            myClassName = className;
-            mySourceFile = sourceFile;
+        GradleScrProject(FileCollection input, FileCollection classpath) {
+            Set<File> classpathFiles = classpath.getFiles();
+            URL[] classpathUrls = classpathFiles.stream().map(f -> {
+                try {
+                    return f.toURI().toURL();
+                } catch (MalformedURLException e) {
+                    throw new GradleException("Malformed URL in classpath", e);
+                }
+            }).toArray(URL[]::new);
+            this.urlClassLoader = URLClassLoader.newInstance(classpathUrls, getClass().getClassLoader());
+            setClassLoader(urlClassLoader);
+            setDependencies(classpathFiles);
+            setSources(createScrSources(input));
         }
 
         @Override
-        public String getClassName()
-        {
-            return myClassName;
+        public void close() throws IOException {
+            urlClassLoader.close();
         }
 
-        @Override
-        public File getFile()
-        {
-            return mySourceFile;
+        private static Collection<Source> createScrSources(FileCollection input) {
+            Collection<Source> sources = new ArrayList<>();
+
+            input.getAsFileTree().matching(f -> f.include("**/*.class")).visit(new EmptyFileVisitor() {
+                @Override
+                public void visitFile(FileVisitDetails fileVisitDetails) {
+                    String dotSeparated = String.join(".", fileVisitDetails.getRelativePath().getSegments());
+                    String className = dotSeparated.substring(0, dotSeparated.length() - ".class".length());
+                    File file = fileVisitDetails.getFile();
+                    sources.add(new Source() {
+                        @Override
+                        public String getClassName() {
+                            return className;
+                        }
+
+                        @Override
+                        public File getFile() {
+                            return file;
+                        }
+                    });
+                }
+            });
+            return sources;
         }
     }
 }
